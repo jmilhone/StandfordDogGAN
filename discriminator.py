@@ -2,32 +2,35 @@ import tensorflow as tf
 from tensorflow.python.keras import layers
 
 
-def make_discriminator():
+def make_discriminator_model():
     model = tf.keras.Sequential()
 
     model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                            use_bias=False, input_shape=(None, 64, 64, 3)))
-    assert model.output_shape == (None, 64, 32, 32, 3)
+                            use_bias=False, input_shape=(64, 64, 3)))
+    assert model.output_shape == (None, 32, 32, 64)
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
     model.add(layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same',
                             use_bias=False))
-    assert model.output_shape == (None, 128, 16, 16, 3)
+    assert model.output_shape == (None, 16, 16, 128)
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
     model.add(layers.Conv2D(256, (5, 5), strides=(2, 2), padding='same',
                             use_bias=False))
-    assert model.output_shape == (None, 256, 8, 8, 3)
+    assert model.output_shape == (None, 8, 8, 256)
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
     model.add(layers.Conv2D(512, (5, 5), strides=(2, 2), padding='same',
                             use_bias=False))
-    assert model.output_shape == (None, 512, 4, 4, 3)
+    assert model.output_shape == (None, 4, 4, 512)
     model.add(layers.BatchNormalization())
 
     model.add(layers.Flatten())
+    model.add(layers.Dense(1)) # , activation='sigmoid'))
     return model
 
+if __name__ == "__main__":
+    discriminator = make_discriminator_model()
