@@ -2,3 +2,4 @@ Annotation/*
 Images/*
 .idea/*
 Checkpoints/*
+__pycache__/*
