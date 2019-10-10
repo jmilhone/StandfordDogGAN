@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+# cross_entropy = tf.keras.losses.BinaryCrossentropy()
 
 
 def discriminator_loss(real_output, fake_output, loss_func,
@@ -66,7 +67,7 @@ def noisy_labels(y, prob):
     op_list = []
     for i in range(npts):
         if i in indices:
-            op_list.append(tf.subtract(1, y[i]))
+            op_list.append(tf.subtract(1.0, y[i]))
         else:
             op_list.append(y[i])
     outputs = tf.stack(op_list)
