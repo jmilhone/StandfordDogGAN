@@ -9,6 +9,7 @@ from tqdm import tqdm
 import random
 import time
 
+
 def parse_dog_xml(filename, folder, image_margin=5):
     tree = ET.parse(filename)
     root = tree.getroot()
@@ -22,9 +23,9 @@ def parse_dog_xml(filename, folder, image_margin=5):
     objects = root.findall('object')
     objects_data = list()
 
-    for idx, object in enumerate(objects):
+    for idx, obj in enumerate(objects):
         object_data = dict()
-        bbox = object.find('bndbox')
+        bbox = obj.find('bndbox')
         xmin = int(bbox.find('xmin').text)
         xmax = int(bbox.find('xmax').text)
         ymin = int(bbox.find('ymin').text)
@@ -57,7 +58,7 @@ def parse_dog_xml(filename, folder, image_margin=5):
         object_data['ymin'] = ymin
         object_data['xmax'] = xmax
         object_data['ymax'] = ymax
-        object_data['breed'] = object.find('name').text
+        object_data['breed'] = obj.find('name').text
         object_data['folder'] = folder
         objects_data.append(object_data)
 
