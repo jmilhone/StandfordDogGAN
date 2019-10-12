@@ -48,14 +48,28 @@ def disc_loss_gan(real_output, fake_output):
     fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
     return real_loss + fake_loss
 
+
 def gen_loss_gan(fake_output):
     return cross_entropy(tf.ones_like(fake_output), fake_output)
+
+
+def disc_loss_gan_reversed_label(real_output, fake_output):
+    real_loss = cross_entropy(tf.zeros_like(real_output), real_output)
+    fake_loss = cross_entropy(tf.ones_like(fake_output), fake_output)
+    return real_loss + fake_loss
+
+
+def gen_loss_gan_reversed_label(fake_output):
+    return cross_entropy(tf.zeros_like(fake_output), fake_output)
+
 
 def smooth_positive_labels(y):
     return y - 0.3 * np.random.random(y.shape)
 
+
 def smooth_negative_labels(y):
     return y + 0.3 * np.random.random(y.shape)
+
 
 def noisy_labels(y, prob):
 
@@ -72,6 +86,7 @@ def noisy_labels(y, prob):
             op_list.append(y[i])
     outputs = tf.stack(op_list)
     return outputs
+
 
 if __name__ == "__main__":
     pos_vals = np.ones(10000)
