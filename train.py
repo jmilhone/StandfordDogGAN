@@ -28,8 +28,8 @@ def train_step(images, batch_size, generator, discriminator, generator_loss,
                                        use_smoothing=use_smoothing,
                                        use_noise=use_noise,
                                        )
-        grad_of_gen = gen_tape.gradient(gen_loss, generator.trainable_variables)
-        grad_of_disc = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+    grad_of_gen = gen_tape.gradient(gen_loss, generator.trainable_variables)
+    grad_of_disc = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
     generator_opt.apply_gradients(zip(grad_of_gen, generator.trainable_variables))
     discriminator_opt.apply_gradients(zip(grad_of_disc, discriminator.trainable_variables))
     return gen_loss, disc_loss
@@ -97,7 +97,7 @@ def train_gan(data, checkpoint_dir, start_epoch=121,  epochs=30, restart=False,
                              discriminator=discriminator,
                          )
     manager = tf.train.CheckpointManager(checkpoint, checkpoint_folder, max_to_keep=5)
-    if  restart:
+    if restart:
         print("Initializing from scratch.")
     else:
         checkpoint.restore(manager.latest_checkpoint)
@@ -111,7 +111,11 @@ def train_gan(data, checkpoint_dir, start_epoch=121,  epochs=30, restart=False,
           seed, use_smoothing=True, use_noise=False)
 
 
-if __name__  == "__main__":
+def flip(image):
+    return tf.image.random_flip_left_right(image)
+
+
+if __name__ == "__main__":
     buffer_size = 5000
     batch_size = 64
 
@@ -120,7 +124,9 @@ if __name__  == "__main__":
 
     dog_images_modified = (dog_images - 127.5) / 127.5
     dog_images_modified = dog_images_modified.astype('float32')
-    dog_dataset = tf.data.Dataset.from_tensor_slices(dog_images_modified).shuffle(buffer_size).batch(batch_size)
+    dog_dataset = (tf.data.Dataset.from_tensor_slices(dog_images_modified)
+                   .shuffle(buffer_size).map(flip).batch(batch_size)
+                   )
 
     checkpoint_folder = "Checkpoints/2019_10_09_0"
     train_gan(dog_dataset, checkpoint_folder, restart=False)
