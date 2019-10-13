@@ -52,7 +52,8 @@ def train(dataset, epochs, start_epoch, batch_size, generator, discriminator, ge
                 print("Saved checkpoint for step {}: {}".format(int(checkpoint.step), save_path))
                 print(f"Gen Loss: {gen_loss.numpy():1.3e}  Disc. Loss: {disc_loss.numpy():1.3e}")
 
-        generate_and_save_images(generator, epoch, test_input, image_folder)
+        images = generate_and_save_images(generator, epoch, test_input, image_folder)
+        print(tf.math.sigmoid(discriminator(images)).numpy().reshape((4,4)))
 
 
 def generate_and_save_images(model, epoch, test_input, output_folder):
@@ -66,8 +67,9 @@ def generate_and_save_images(model, epoch, test_input, output_folder):
     plt.savefig(os.path.join(output_folder, f"image_at_epoch_{epoch:04d}.png"))
     plt.close(fig)
 
+    return predictions
 
-def train_gan(data, checkpoint_dir, start_epoch=121,  epochs=30, restart=False,
+def train_gan(data, checkpoint_dir, start_epoch=375,  epochs=100, restart=False,
               batch_size=64, lr_gen=2e-4, lr_disc=2e-4, num_examples_to_generate=16):
 
     # Create the generator and discriminator
@@ -108,7 +110,7 @@ def train_gan(data, checkpoint_dir, start_epoch=121,  epochs=30, restart=False,
 
     train(data, epochs, start_epoch, batch_size, generator, discriminator, generator_loss,
           discriminator_loss, generator_optimizer, discriminator_optimizer, checkpoint, manager, image_folder,
-          seed, use_smoothing=True, use_noise=False)
+          seed, use_smoothing=True, use_noise=True)
 
 
 def flip(image):
@@ -117,7 +119,7 @@ def flip(image):
 
 if __name__ == "__main__":
     buffer_size = 5000
-    batch_size = 64
+    batch_size = 256
 
     dog_info = data_preparation.parse_all_annotations("Annotation")
     dog_images = data_preparation.prep_all_images(dog_info, final_image_size=64)
@@ -125,8 +127,21 @@ if __name__ == "__main__":
     dog_images_modified = (dog_images - 127.5) / 127.5
     dog_images_modified = dog_images_modified.astype('float32')
     dog_dataset = (tf.data.Dataset.from_tensor_slices(dog_images_modified)
-                   .shuffle(buffer_size).map(flip).batch(batch_size)
+                   .shuffle(buffer_size).map(flip).batch(batch_size).prefetch(2)
                    )
 
-    checkpoint_folder = "Checkpoints/2019_10_09_0"
-    train_gan(dog_dataset, checkpoint_folder, restart=False)
+
+    checkpoint_folder = "Checkpoints/2019_10_13_0"
+    train_gan(dog_dataset, checkpoint_folder, restart=False, batch_size=batch_size, lr_disc=2e-4, lr_gen=2e-4)
+
+    # 2019_10_09_0 batchsize=64, lr = 2e-4
+    # 2019_10_10_0 batchsize=128 lr_disc = 1e-4, lr_gen=4e-4
+    # 2019_10_12_0 batchsize=128 lr_disc = 1e-4, lr_gen=4e-4, random_left_right_flip,
+    #   kernel_initializer
+    # 2019_10_12_1 batchsize=128 lr_disc = 1e-4, lr_gen=4e-4, random_left_right_flip,
+    #   kernel_initializer, was able to fix the use noise function
+    # 2019_10_12_2 batchsize=256 lr_disc = 2e-4, lr_gen=2e-4, random_left_right_flip,
+    #   kernel_initializer, was able to fix the use noise function
+    # 2019_10_13_0 I think I was missing an activation in the discrimintator at the last convolution before flatten
+
+    # ToDo: Try making real 0 and fake 1. Go back to symmetric learning rates. Try implementing spectral normalization.
