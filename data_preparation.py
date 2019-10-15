@@ -10,7 +10,7 @@ import random
 import time
 
 
-def parse_dog_xml(filename, folder, image_margin=5):
+def parse_dog_xml(filename, folder, image_margin=5, only_single_dog=True):
     tree = ET.parse(filename)
     root = tree.getroot()
 
@@ -62,6 +62,9 @@ def parse_dog_xml(filename, folder, image_margin=5):
         object_data['folder'] = folder
         objects_data.append(object_data)
 
+    if only_single_dog and len(objects_data) > 1:
+        return None
+
     return objects_data
 
 def parse_all_annotations(folder):
@@ -75,7 +78,9 @@ def parse_all_annotations(folder):
                 # objects_data.extend(parse_dog_xml(fname))
         n_futures = len(futures)
         for future in tqdm(concurrent.futures.as_completed(futures), total=n_futures):
-            objects_data.extend(future.result())
+            result = future.result()
+            if result is not None:
+                objects_data.extend(future.result())
 
     print(len(objects_data))
     return objects_data
