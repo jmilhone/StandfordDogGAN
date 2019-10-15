@@ -2,7 +2,8 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+# cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=False)
 # cross_entropy = tf.keras.losses.BinaryCrossentropy()
 
 
@@ -18,8 +19,11 @@ def discriminator_loss(real_output, fake_output, loss_func,
         fake_output_noise = noisy_labels(tf.zeros_like(fake_output), 0.05)
         real_output_smooth = smooth_positive_labels(real_output_noise)
         fake_output_smooth = smooth_negative_labels(fake_output_noise)
-
-        return loss_func(real_output_smooth, fake_output_smooth)
+        # I think I've been doing this wrong...
+        real_loss = cross_entropy(real_output_smooth, real_output)
+        fake_loss = cross_entropy(fake_output_smooth, fake_output)
+        return real_loss + fake_loss
+        # return loss_func(real_output_smooth, fake_output_smooth)
 
     if use_noise and not use_smoothing:
         # call use_noise helper function
@@ -28,16 +32,23 @@ def discriminator_loss(real_output, fake_output, loss_func,
         return loss_func(real_output_noise, fake_output_noise)
 
     # Last case is to call smoothing but not noise
-    real_output_smooth = smooth_positive_labels(real_output)
-    fake_output_smooth = smooth_negative_labels(fake_output)
-    return loss_func(real_output_smooth, fake_output_smooth)
+    # I'm changing this because I think I'm doing it wrong...
+    real_output_smooth = smooth_positive_labels(tf.ones_like(real_output))
+    fake_output_smooth = smooth_negative_labels(tf.zeros_like(fake_output))
+    real_loss = cross_entropy(real_output_smooth, real_output)
+    fake_loss = cross_entropy(fake_output_smooth, fake_output)
+    return real_loss + fake_loss
+    # return loss_func(real_output_smooth, fake_output_smooth)
 
 
 def generator_loss(fake_output, loss_func, use_smoothing=False):
     if use_smoothing:
         # call smoothing
-        fake_output_smoothing = smooth_negative_labels(fake_output)
-        return loss_func(fake_output_smoothing)
+        # I think I'm doing this wrong...
+        fake_output_smoothing = smooth_positive_labels(tf.ones_like(fake_output))
+        return cross_entropy(fake_output_smoothing, fake_output)
+        # fake_output_smoothing = smooth_negative_labels(fake_output)
+        # return loss_func(fake_output_smoothing)
     else:
         return loss_func(fake_output)
 
