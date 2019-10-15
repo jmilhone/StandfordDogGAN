@@ -14,16 +14,25 @@ def discriminator_loss(real_output, fake_output, loss_func,
         return loss_func(real_output, fake_output)
 
     if use_noise and use_smoothing:
+        # real = 1, fake = 0
         # call both
-        real_output_noise = noisy_labels(tf.ones_like(real_output), 0.05)
-        fake_output_noise = noisy_labels(tf.zeros_like(fake_output), 0.05)
-        real_output_smooth = smooth_positive_labels(real_output_noise)
-        fake_output_smooth = smooth_negative_labels(fake_output_noise)
-        # I think I've been doing this wrong...
+        # real_output_noise = noisy_labels(tf.ones_like(real_output), 0.05)
+        # fake_output_noise = noisy_labels(tf.zeros_like(fake_output), 0.05) # I'm wondering if I shouldn't have been doing this...
+        # real_output_smooth = smooth_positive_labels(real_output_noise)
+        # fake_output_smooth = smooth_negative_labels(fake_output_noise)
+        # # I think I've been doing this wrong...
+        # real_loss = cross_entropy(real_output_smooth, real_output)
+        # fake_loss = cross_entropy(fake_output_smooth, fake_output)
+        # return real_loss + fake_loss
+        # return loss_func(real_output_smooth, fake_output_smooth)
+
+        # real = 0, fake = 1
+        real_output_noise = noisy_labels(tf.zeros_like(real_output), 0.05)
+        real_output_smooth = smooth_negative_labels(real_output_noise)
+        fake_output_smooth = smooth_positive_labels(tf.ones_like(fake_output))
         real_loss = cross_entropy(real_output_smooth, real_output)
         fake_loss = cross_entropy(fake_output_smooth, fake_output)
         return real_loss + fake_loss
-        # return loss_func(real_output_smooth, fake_output_smooth)
 
     if use_noise and not use_smoothing:
         # call use_noise helper function
@@ -45,7 +54,12 @@ def generator_loss(fake_output, loss_func, use_smoothing=False):
     if use_smoothing:
         # call smoothing
         # I think I'm doing this wrong...
-        fake_output_smoothing = smooth_positive_labels(tf.ones_like(fake_output))
+        # real = 1, fake = 0
+        # fake_output_smoothing = smooth_positive_labels(tf.ones_like(fake_output))  # we want the disc to predict 1
+        # return cross_entropy(fake_output_smoothing, fake_output)
+
+        # real = 0, fake = 1
+        fake_output_smoothing = smooth_negative_labels(tf.zeros_like(fake_output))  # we want the disc to predict 0 now
         return cross_entropy(fake_output_smoothing, fake_output)
         # fake_output_smoothing = smooth_negative_labels(fake_output)
         # return loss_func(fake_output_smoothing)
@@ -92,7 +106,10 @@ def noisy_labels(y, prob):
     op_list = []
     for i in range(npts):
         if i in indices:
-            op_list.append(tf.subtract(1.0, y[i]))
+            # real = 1, flips to 0
+            # op_list.append(tf.subtract(1.0, y[i]))
+            # real = 0, flips to 1
+            op_list.append(tf.add(1.0, y[i]))
         else:
             op_list.append(y[i])
     outputs = tf.stack(op_list)
