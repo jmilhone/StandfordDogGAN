@@ -18,7 +18,10 @@ def train_step(images, batch_size, generator, discriminator, generator_loss,
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_images = generator(noise, training=True)
 
-        real_output = discriminator(images, training=True)
+        real_image_noise = images + tf.random.normal(images.shape,
+                  stddev=tf.random.uniform([1], minval=0.0, maxval=0.1))
+        # real_output = discriminator(images, training=True)
+        real_output = discriminator(real_image_noise, training=True)
         fake_output = discriminator(generated_images, training=True)
 
         gen_loss = generator_loss(fake_output, loss_functions.gen_loss_gan,
@@ -47,13 +50,14 @@ def train(dataset, epochs, start_epoch, batch_size, generator, discriminator, ge
                                              use_noise=use_noise)
             checkpoint.step.assign_add(1)
 
-            if int(checkpoint.step) % 50 == 0:
+            if int(checkpoint.step) % 100 == 0:
                 save_path = manager.save()
                 print("Saved checkpoint for step {}: {}".format(int(checkpoint.step), save_path))
                 print(f"Gen Loss: {gen_loss.numpy():1.3e}  Disc. Loss: {disc_loss.numpy():1.3e}")
 
         images = generate_and_save_images(generator, epoch, test_input, image_folder)
-        print(tf.math.sigmoid(discriminator(images)).numpy().reshape((4,4)))
+        # print(tf.math.sigmoid(discriminator(images)).numpy().reshape((4,4)))
+        print(discriminator(images).numpy().reshape((4,4)))
 
 
 def generate_and_save_images(model, epoch, test_input, output_folder):
@@ -69,7 +73,7 @@ def generate_and_save_images(model, epoch, test_input, output_folder):
 
     return predictions
 
-def train_gan(data, checkpoint_dir, start_epoch=375,  epochs=100, restart=False,
+def train_gan(data, checkpoint_dir, start_epoch=100,  epochs=200, restart=False,
               batch_size=64, lr_gen=2e-4, lr_disc=2e-4, num_examples_to_generate=16):
 
     # Create the generator and discriminator
@@ -119,19 +123,19 @@ def flip(image):
 
 if __name__ == "__main__":
     buffer_size = 5000
-    batch_size = 256
+    batch_size = 32
 
     dog_info = data_preparation.parse_all_annotations("Annotation")
     dog_images = data_preparation.prep_all_images(dog_info, final_image_size=64)
-
+    print(dog_images.shape)
     dog_images_modified = (dog_images - 127.5) / 127.5
     dog_images_modified = dog_images_modified.astype('float32')
     dog_dataset = (tf.data.Dataset.from_tensor_slices(dog_images_modified)
-                   .shuffle(buffer_size).map(flip).batch(batch_size).prefetch(2)
+                   .shuffle(buffer_size).map(flip).batch(batch_size).prefetch(5)
                    )
 
 
-    checkpoint_folder = "Checkpoints/2019_10_13_0"
+    checkpoint_folder = "Checkpoints/2019_10_14_1"
     train_gan(dog_dataset, checkpoint_folder, restart=False, batch_size=batch_size, lr_disc=2e-4, lr_gen=2e-4)
 
     # 2019_10_09_0 batchsize=64, lr = 2e-4
@@ -143,5 +147,9 @@ if __name__ == "__main__":
     # 2019_10_12_2 batchsize=256 lr_disc = 2e-4, lr_gen=2e-4, random_left_right_flip,
     #   kernel_initializer, was able to fix the use noise function
     # 2019_10_13_0 I think I was missing an activation in the discrimintator at the last convolution before flatten
+    # 2019_10_13_1 Moved batch normalization to after LeakyReLU
+    # 2019_10_14_0 Add noise to real images, only have images with exactly one dog in them
+    # 2019_10_14_0 Using sigmoid instead of logits
 
     # ToDo: Try making real 0 and fake 1. Go back to symmetric learning rates. Try implementing spectral normalization.
+    # ToDo: Try adding noise to the actual images before feeding to the discriminator.
